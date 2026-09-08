@@ -5,7 +5,7 @@ from images.preprocess import format_images
 
 def main():
     """
-    Função principal que gerencia as pastas e o fluxo do programa.
+    Função principal que gerencia diretórios e fluxo do programa.
     """
     src_dir = "images/raw" # imagens originais (sem pré-processamento)
     dst_dir = "images/processed" # imagens pré-processadas (512x512, grayscale)
@@ -25,3 +25,6 @@ def main():
         dst = os.path.join(dst_dir, arquivo)
         if format_images(src, dst):
             print(f" -> {arquivo} formatada")
+
+if __name__ == "__main__":
+    main()

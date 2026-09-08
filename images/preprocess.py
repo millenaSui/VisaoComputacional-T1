@@ -8,8 +8,8 @@ import cv2
 
 def format_images(src_path, dst_path):
     """
-    Lê a imagem, cropa para o tamanho 512x512 no centro, converte para 
-    escala de cinza (grayscale) e salva no diretório de destino.
+    Lê a imagem, cropa o maior quadrado possível no centro, redimensiona
+    para 512x512, converte para escala de cinza e salva no destino.
 
     :param src_path: Caminho da imagem original
     :param dst_path: Caminho da imagem processada
@@ -25,18 +25,21 @@ def format_images(src_path, dst_path):
         
         h, w = img.shape[:2]
         
-        # se a imagem for menor que 512, redimensiona primeiro mantendo a proporção
-        if h < 512 or w < 512:
-            escala = max(512/h, 512/w)
-            img = cv2.resize(img, (int(w * escala), int(h * escala)))
-            h, w = img.shape[:2]
-            
-        # recorte central (512x512)
-        cy, cx = h // 2, w // 2
-        cropped = img[cy-256 : cy+256, cx-256 : cx+256]
+        # define o tamanho do maior quadrado possível (a menor dimensão da imagem)
+        min_dim = min(h, w)
+        
+        # calcula os pontos de início para centralizar o recorte
+        start_y = (h - min_dim) // 2
+        start_x = (w - min_dim) // 2
+        
+        # cropa o maior quadrado central (para pegar uma boa dimensão da imagem)
+        square_img = img[start_y : start_y + min_dim, start_x : start_x + min_dim]
+        
+        # redimensiona o quadrado para 512x512 (INTER_AREA)
+        resized_img = cv2.resize(square_img, (512, 512), interpolation=cv2.INTER_AREA)
         
         # converte para grayscale
-        gray = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY)
+        gray = cv2.cvtColor(resized_img, cv2.COLOR_BGR2GRAY)
 
     except Exception as e:
         print(f"[ERRO] Falha ao processar a imagem '{src_path}': {e}")
