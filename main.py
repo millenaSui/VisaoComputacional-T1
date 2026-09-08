@@ -2,6 +2,7 @@
 import os
 
 from images.preprocess import format_images
+from filters.filters import build_filters
 
 def main():
     """
@@ -14,7 +15,7 @@ def main():
     os.makedirs(dst_dir, exist_ok=True)
     
     arquivos_origem = [f for f in os.listdir(src_dir) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
-    
+
     if not arquivos_origem:
         print(f"[ERRO] Nenhuma imagem encontrada na pasta '{src_dir}'. Adicione as imagens e rode novamente.")
         return
@@ -24,7 +25,9 @@ def main():
         src = os.path.join(src_dir, arquivo)
         dst = os.path.join(dst_dir, arquivo)
         if format_images(src, dst):
-            print(f" -> {arquivo} formatada")
+            print(f" [INFO] {arquivo} formatada com sucesso")
+
+    filters = build_filters()
 
 if __name__ == "__main__":
     main()
