@@ -2,11 +2,11 @@
 Módulo principal que gerencia diretórios e fluxo do programa,
 manipula imagens e aplica filtros para extração de textura e segmentação
 """
+from concurrent.futures import ProcessPoolExecutor, as_completed
 import os
-import cv2
 
-from images.process import format_images, segment_image, paint_image
-from filters.filters import build_filters, apply_filters
+from src.filters import build_filters
+from src.workers import segment_worker, format_worker
 
 def main():
     """
@@ -15,49 +15,41 @@ def main():
     src_dir = "images/raw" # imagens originais (sem pré-processamento)
     dst_dir = "images/processed" # imagens pré-processadas (512x512, grayscale)
     segmented_dir = "images/segmented" # imagens segmentadas (resultado final)
-    
+
     os.makedirs(src_dir, exist_ok=True)
     os.makedirs(dst_dir, exist_ok=True)
     os.makedirs(segmented_dir, exist_ok=True)
-    
+
     origin_files = [f for f in os.listdir(src_dir) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
 
     if not origin_files:
         print(f"[ERRO] Nenhuma imagem encontrada na pasta '{src_dir}'. Adicione as imagens e rode novamente.")
         return
 
-    # pré-processamento das imagens
-    for file in origin_files:
-        src = os.path.join(src_dir, file)
-        dst = os.path.join(dst_dir, file)
-        if format_images(src, dst):
-            print(f"[INFO] {file} formatada com sucesso")
+    # pré-processamento paralelo
+    print("[INFO] Iniciando formatação paralela...")
+    with ProcessPoolExecutor() as executor:
+        futures_format = [executor.submit(format_worker, f, src_dir, dst_dir) for f in origin_files]
+        for future in as_completed(futures_format):
+            print(future.result())
 
+    # constrói o banco com 24 filtros
     filters = build_filters()
 
-    # extração de textura em cada imagem
-    for file in os.listdir(dst_dir):
-        img_path = os.path.join(dst_dir, file)
-        img_gray = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
-        
-        if img_gray is None:
-            print(f"[ERRO] Falha ao ler a imagem '{file}'. Verifique se o arquivo está corrompido.")
-            continue
-       
-        features, positions = apply_filters(img_gray, filters)
+    processed_files = os.listdir(dst_dir)
 
-        # agrupa por distância euclidiana
-        labels = segment_image(features, k=4)
+    # extração e segmentação paralelas
+    print("\n[INFO] Iniciando extração e segmentação paralelas...")
+    with ProcessPoolExecutor() as executor:
+        # envia filtros em memória para cada processo worker
+        futures_segment = [
+            executor.submit(segment_worker, f, dst_dir, segmented_dir, filters)
+            for f in processed_files
+        ]
+        for future in as_completed(futures_segment):
+            print(future.result())
 
-        # pinta a image segmentada
-        segmented_img = paint_image(img_gray, positions, labels)
-
-        # salva a imagem segmentada
-        caminho_salvar = os.path.join(segmented_dir, "seg_" + file)
-        cv2.imwrite(caminho_salvar, segmented_img)
-        print(f"[INFO] Concluído: {file}")
-
-    print("[INFO] Processamento concluído. Todas as imagens foram segmentadas e salvas em 'images/segmented'.")
+    print("\n[INFO] Processamento concluído. Todas as imagens foram segmentadas e salvas em 'images/segmented'.")
 
 if __name__ == "__main__":
     main()

@@ -9,6 +9,8 @@ das imagens, sendo 24 filtros no total (8 tipos x 3 escalas):
 import cv2
 import numpy as np
 
+WINDOW_SIZE = 16
+
 def build_filters():
     """
     Constrói um banco com 24 filtros (8 tipos x 3 escalas)
@@ -79,13 +81,13 @@ def apply_filters(img, filters):
     for f in filters:
         filtered = cv2.filter2D(img, cv2.CV_32F, f) # evita estouro numérico
         results.append(np.abs(filtered))
-        
+
     h, w = img.shape
-    w_size = 8
-    
+    w_size = WINDOW_SIZE
+
     features = []
     positions = []
-    
+
     # blocos não sobrepostos
     for y in range(0, h, w_size):
         for x in range(0, w, w_size):
@@ -93,8 +95,8 @@ def apply_filters(img, filters):
             for res in results:
                 bloco = res[y:y+w_size, x:x+w_size]
                 mean_filters.append(np.mean(bloco)) # média do valor absoluto do bloco
-            
+
             features.append(mean_filters) # vetor de 24 dimensões
             positions.append((y, x))
-            
+
     return np.array(features), positions

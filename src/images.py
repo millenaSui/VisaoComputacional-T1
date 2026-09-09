@@ -1,9 +1,14 @@
 """
-Módulo de pré-processamento de imagens para que se
-enquadrem no padrão estabelecido para o dataset:
+Módulo de processamento de imagens:
+- Modifica para que se enquadrem no padrão estabelecido para o dataset:
     - Tamanho: 512x512
     - Escala de cinza
+- Cropa o maior quadrado possível no centro da imagem
+- Segmenta a imagem em blocos 16x16, extrai características de textura e aplica
+  K-Means para agrupar regiões semelhantes
+- Pinta a imagem segmentada com cores diferentes
 """
+
 import cv2
 import numpy as np
 from sklearn.cluster import KMeans
@@ -92,7 +97,7 @@ def paint_image(img_gray, posicoes, labels):
         [255, 0, 0], # azul
         [0, 255, 0], # verde
         [0, 0, 255], # vermelho
-        [0, 255, 255] # amarelo
+        [0, 255, 255] # amraelo
     ]
 
     out_map = np.zeros((img_gray.shape[0], img_gray.shape[1], 3), dtype=np.uint8)
