@@ -11,10 +11,7 @@ Módulo de processamento de imagens:
 
 import cv2
 import numpy as np
-from sklearn.cluster import KMeans
 from src.filters import WINDOW_SIZE
-
-KMEANS = 4
 
 def format_images(src_path, dst_path):
     """
@@ -65,24 +62,76 @@ def format_images(src_path, dst_path):
         print(f"[ERRO] Falha ao salvar a imagem processada '{dst_path}': {e}")
         return False
 
-def segment_image(features, k=KMEANS):
+def segment_image(features, threshold=None):
     """
-    Normaliza as características e aplica o K-Means baseado na 
-    distância Euclidiana, retornando os rótulos de cada região
+    Segmenta a imagem com base nas características extraídas
+    usando distância euclidiana para agrupar regiões semelhantes.
 
-    :param features: Array de características extraídas da imagem
-    :param k: Número de clusters para o K-Means
-
-    :return: Rótulos de cada região após o agrupamento
+    :param features: Vetor de características extraídas (N x 24)
+    :param threshold: Limite de distância para definir os grupos.
+                      Se None, utiliza um valor padrão.
+    :return: labels (rótulos de cada bloco após o agrupamento)
     """
-    # normalização estatística para a distância euclidiana não priorizar escalas maiores
+
+    # normaliza as características para média 0 e desvio padrão 1
     features_norm = (features - np.mean(features, axis=0)) / (np.std(features, axis=0) + 1e-8)
 
-    # clássico - agrupamento
-    kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)
-    labels = kmeans.fit_predict(features_norm)
+    # limite de distância padrão
+    if threshold is None:
+        threshold = 4.0
 
-    return labels
+    protos = [] # representantes de cada grupo
+    labels = [] # rotulos região
+    sums = [] # somas para atualizar os representantes
+    qtd = [] # quantidade de membros em cada grupo
+    MAX_GRUPOS = 4
+
+    # percorre cada vetor de características
+    for vet in features_norm:
+        # cria o primeiro grupo
+        if len(protos) == 0:
+            protos.append(vet.copy())
+            sums.append(vet.copy())
+            qtd.append(1)
+            labels.append(0)
+            continue
+
+        # calcula a distância euclidiana do vetor para o representante de cada grupo
+        dist = [np.linalg.norm(vet - proto) for proto in protos]
+        closest_proto = int(np.argmin(dist))
+        closest_dist = dist[closest_proto]
+
+        # coloca o vetor no grupo suficientemente proximo
+        if closest_dist <= threshold:
+            labels.append(closest_proto)
+
+            # atualiza soma e quantidade
+            sums[closest_proto] += vet
+            qtd[closest_proto] += 1
+
+            # atualiza representantes
+            protos[closest_proto] = (sums[closest_proto] / qtd[closest_proto])
+
+        elif len(protos) < MAX_GRUPOS:
+            new_proto = len(protos)
+
+            protos.append(vet.copy())
+            sums.append(vet.copy())
+            qtd.append(1)
+
+            labels.append(new_proto)
+
+        else:
+            labels.append(closest_proto)
+
+            # atualiza soma e quantidade
+            sums[closest_proto] += vet
+            qtd[closest_proto] += 1
+
+            # atualiza representantes
+            protos[closest_proto] = (sums[closest_proto] / qtd[closest_proto])
+
+    return np.array(labels)
 
 def paint_image(img_gray, posicoes, labels):
     """
@@ -97,17 +146,21 @@ def paint_image(img_gray, posicoes, labels):
     """
     # dicionário de cores para os K=6 grupos
     cores = [
-        [255, 0, 0], # azul
-        [0, 255, 255], # amarelo
-        [0, 255, 0], # verde
-        [0, 0, 255] # vermelho
+        (255, 0, 0), # azul
+        (0, 255, 255), # amarelo
+        (0, 255, 0), # verde
+        (0, 0, 255) # vermelho
     ]
 
     out_map = np.zeros((img_gray.shape[0], img_gray.shape[1], 3), dtype=np.uint8)
 
     tamanho_janela = WINDOW_SIZE
     for (y, x), label in zip(posicoes, labels):
-        # pinta o bloco todo com a cor associada à classe
+
+        if label < 0 or label >= len(cores):
+            print(f"[ERRO] Label inválido: {label}. Número de cores: {len(cores)}")
+            label = label % len(cores)
+
         out_map[y:y+tamanho_janela, x:x+tamanho_janela] = cores[label]
 
     # sobreposição para visualizar o resultado (mantem textura original)
