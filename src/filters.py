@@ -1,9 +1,6 @@
 """
 Módulo de construção de filtros para extração de características
-das imagens, sendo 24 filtros no total (8 tipos x 3 escalas):
-    - Bordas: 0, 45, 90, 135 graus (Gabor antissimétrico)
-    - Barras: 0, 45, 90 graus (Gabor simétrico)
-    - Pontos: LoG (Laplaciano do Gaussiano)
+das imagens, sendo 24 filtros no total (8 tipos x 3 escalas)
 """
 
 import cv2
@@ -44,27 +41,21 @@ def build_filters():
             kernel = cv2.getGaborKernel((ksize, ksize), sigma, theta, lambd, 1.0, psi=0, ktype=cv2.CV_32F)
             filters.append(kernel)
 
-        # pontos (Laplaciano do Gaussiano)
-        print(f"[INFO] Construindo filtro LoG (Pontos) - Escala: {sigma}")
-        # criação do grid centralizado (ex: para ksize=5, eixo vai de -2 a 2)
+        print(f"[INFO] Construindo filtro circular - Escala: {sigma}")
+
+        # criação do grid centralizado
         meio = ksize // 2
         eixo = np.arange(-meio, meio + 1)
         xx, yy = np.meshgrid(eixo, eixo)
-
-        # variáveis intermediárias
         r_quadrado = xx**2 + yy**2
-        sigma_quad = sigma**2
 
-        # composição da fórmula do Laplaciano do Gaussiano (LoG inversa)
-        constante = -1 / (np.pi * sigma**4)
-        termo_central = 1 - (r_quadrado / (2 * sigma_quad))
-        exponencial = np.exp(-r_quadrado / (2 * sigma_quad))
-
-        kernel_log = constante * termo_central * exponencial
+        # composição do filtro circular
+        raio = max(1, int(np.ceil(sigma)))
+        mascara_circular = (r_quadrado <= raio**2).astype(np.float32)
 
         # normalização e armazenamento
-        kernel_log -= kernel_log.mean() # garante soma zero
-        filters.append(kernel_log.astype(np.float32))
+        kernel_circular = mascara_circular / np.sum(mascara_circular)
+        filters.append(kernel_circular.astype(np.float32))
 
     print(f"[INFO] Banco de filtros construído com sucesso. Total de filtros: {len(filters)}")
 
