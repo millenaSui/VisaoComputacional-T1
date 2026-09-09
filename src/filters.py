@@ -10,6 +10,9 @@ import cv2
 import numpy as np
 
 WINDOW_SIZE = 16
+VETOR_ESCALAS = [0.5, 1.0, 2.0]
+VETOR_ANGULOS_BORDAS = [0, 45, 90, 135]
+VETOR_ANGULOS_BARRAS = [0, 45, 90]
 
 def build_filters():
     """
@@ -19,29 +22,29 @@ def build_filters():
     - Pontos: LoG (Laplaciano do Gaussiano)
     """
     filters = []
-    escalas = [1.0, 2.0, 4.0] # escala logarítmica no desvio padrão
+    escalas = VETOR_ESCALAS # escala logarítmica no desvio padrão
 
     print("\n[INFO] Construindo Banco de 24 Filtros (3 Escalas x 8 Orientacoes)")
 
     for sigma in escalas:
-        ksize = int(6 * sigma) | 1 # tamanho do kernel ímpar
+        ksize = int(6 * sigma) | 1 # garante tamanho do kernel ímpar
         lambd = sigma * 3 # comprimento de onda da senoide
 
         # bordas (Gabor com fase psi = pi/2 -> Antissimétrico)
-        for angulo in [0, 45, 90, 135]:
+        for angulo in VETOR_ANGULOS_BORDAS:
             print(f"[INFO] Construindo filtro Gabor (Borda) - Escala: {sigma}, Angulo: {angulo} graus")
             theta = np.deg2rad(angulo)
             kernel = cv2.getGaborKernel((ksize, ksize), sigma, theta, lambd, 1.0, psi=np.pi/2, ktype=cv2.CV_32F)
             filters.append(kernel)
 
         # barras (Gabor com fase psi = 0 -> Simétrico)
-        for angulo in [0, 45, 90]:
+        for angulo in VETOR_ANGULOS_BARRAS:
             print(f"[INFO] Construindo filtro Gabor (Barras) - Escala: {sigma}, Angulo: {angulo} graus")
             theta = np.deg2rad(angulo)
             kernel = cv2.getGaborKernel((ksize, ksize), sigma, theta, lambd, 1.0, psi=0, ktype=cv2.CV_32F)
             filters.append(kernel)
 
-        # pontos (Laplaciano do Gaussiano - LoG)
+        # pontos (Laplaciano do Gaussiano)
         print(f"[INFO] Construindo filtro LoG (Pontos) - Escala: {sigma}")
         # criação do grid centralizado (ex: para ksize=5, eixo vai de -2 a 2)
         meio = ksize // 2

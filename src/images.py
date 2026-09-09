@@ -12,6 +12,9 @@ Módulo de processamento de imagens:
 import cv2
 import numpy as np
 from sklearn.cluster import KMeans
+from src.filters import WINDOW_SIZE
+
+KMEANS = 4
 
 def format_images(src_path, dst_path):
     """
@@ -62,7 +65,7 @@ def format_images(src_path, dst_path):
         print(f"[ERRO] Falha ao salvar a imagem processada '{dst_path}': {e}")
         return False
 
-def segment_image(features, k=4):
+def segment_image(features, k=KMEANS):
     """
     Normaliza as características e aplica o K-Means baseado na 
     distância Euclidiana, retornando os rótulos de cada região
@@ -92,17 +95,17 @@ def paint_image(img_gray, posicoes, labels):
 
     :return: Imagem final com sobreposição das cores
     """
-    # dicionário de cores para os K=4 grupos
+    # dicionário de cores para os K=6 grupos
     cores = [
         [255, 0, 0], # azul
+        [0, 255, 255], # amarelo
         [0, 255, 0], # verde
-        [0, 0, 255], # vermelho
-        [0, 255, 255] # amraelo
+        [0, 0, 255] # vermelho
     ]
 
     out_map = np.zeros((img_gray.shape[0], img_gray.shape[1], 3), dtype=np.uint8)
 
-    tamanho_janela = 16
+    tamanho_janela = WINDOW_SIZE
     for (y, x), label in zip(posicoes, labels):
         # pinta o bloco todo com a cor associada à classe
         out_map[y:y+tamanho_janela, x:x+tamanho_janela] = cores[label]

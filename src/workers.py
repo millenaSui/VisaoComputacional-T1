@@ -46,7 +46,7 @@ def segment_worker(file, dst_dir, segmented_dir, filters):
         return f"[ERRO] Falha ao ler a imagem '{file}'. Verifique se o arquivo está corrompido."
 
     features, positions = apply_filters(img_gray, filters)
-    labels = segment_image(features, k=4)
+    labels = segment_image(features)
     segmented_img = paint_image(img_gray, positions, labels)
 
     caminho_salvar = os.path.join(segmented_dir, "seg_" + file)
