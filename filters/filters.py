@@ -20,27 +20,27 @@ def build_filters():
     escalas = [1.0, 2.0, 4.0] # escala logarítmica no desvio padrão
 
     print("\n[INFO] Construindo Banco de 24 Filtros (3 Escalas x 8 Orientacoes)")
-    
+
     for sigma in escalas:
         ksize = int(6 * sigma) | 1 # tamanho do kernel ímpar
         lambd = sigma * 3 # comprimento de onda da senoide
-        
+
         # bordas (Gabor com fase psi = pi/2 -> Antissimétrico)
         for angulo in [0, 45, 90, 135]:
-            print(f" [INFO] Construindo filtro Gabor (Borda) - Escala: {sigma}, Angulo: {angulo} graus")
+            print(f"[INFO] Construindo filtro Gabor (Borda) - Escala: {sigma}, Angulo: {angulo} graus")
             theta = np.deg2rad(angulo)
             kernel = cv2.getGaborKernel((ksize, ksize), sigma, theta, lambd, 1.0, psi=np.pi/2, ktype=cv2.CV_32F)
             filters.append(kernel)
-            
+
         # barras (Gabor com fase psi = 0 -> Simétrico)
         for angulo in [0, 45, 90]:
-            print(f" [INFO] Construindo filtro Gabor (Barras) - Escala: {sigma}, Angulo: {angulo} graus")
+            print(f"[INFO] Construindo filtro Gabor (Barras) - Escala: {sigma}, Angulo: {angulo} graus")
             theta = np.deg2rad(angulo)
             kernel = cv2.getGaborKernel((ksize, ksize), sigma, theta, lambd, 1.0, psi=0, ktype=cv2.CV_32F)
             filters.append(kernel)
-            
+
         # pontos (Laplaciano do Gaussiano - LoG)
-        print(f" [INFO] Construindo filtro LoG (Pontos) - Escala: {sigma}")
+        print(f"[INFO] Construindo filtro LoG (Pontos) - Escala: {sigma}")
         # criação do grid centralizado (ex: para ksize=5, eixo vai de -2 a 2)
         meio = ksize // 2
         eixo = np.arange(-meio, meio + 1)
@@ -62,7 +62,7 @@ def build_filters():
         filters.append(kernel_log.astype(np.float32))
 
     print(f"[INFO] Banco de filtros construído com sucesso. Total de filtros: {len(filters)}")
-    
+
     return filters
 
 
@@ -81,7 +81,7 @@ def apply_filters(img, filters):
         results.append(np.abs(filtered))
         
     h, w = img.shape
-    w_size = 16
+    w_size = 8
     
     features = []
     positions = []
