@@ -23,3 +23,4 @@ Para executar o projeto (no diretório raiz e com a ferramenta *Docker* devidame
 ```bash
 docker build -t ta01-visao-computacional .
 docker run --rm -v $(pwd)/images:/app/images ta01-visao-computacional
+```
